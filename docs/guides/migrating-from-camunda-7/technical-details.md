@@ -1,8 +1,13 @@
 ---
-id: adjusting-bpmn-models
-title: Adjust BPMN models
-description: "Learn how to adjust your BPMN models when migrating from Camunda 7 to Camunda 8."
+id: technical-details
+title: Technical Details around Camunda 7 to Camunda 8 Migration
+sidebar_label: Technical Details
+description: "Understand technical details (e.g. BPMN Schema differences) from Camunda 7 to Camunda 8."
 ---
+
+To run a soluion built for Camunda 7 on Camunda 8 you need to convert or refactor your code. We focus on Java code in this guide. This section will look into typical conversion patterns, and how to leverage tooling (namely [Open Rewrite](https://docs.openrewrite.org/)) to automate some of those patterns, before giving you an outlook how AI (think of GitHub Copilot or ChatGPT) can help you doing those refactoring.
+
+## Adjusting BPMN Models
 
 Ensure your BPMN process models are adjusted as follows to migrate them from Camunda 7 to Camunda 8:
 
@@ -16,7 +21,7 @@ Ensure your BPMN process models are adjusted as follows to migrate them from Cam
 Web Modeler will automatically update `modeler:executionPlatform` and `modeler:executionPlatformVersion` to the correct values when you upload a BPMN file.
 :::
 
-The following sections describe the capabilities of the existing community-supported [backend diagram converter](https://github.com/camunda-community-hub/camunda-7-to-8-migration/tree/main/backend-diagram-converter) for relevant BPMN symbols, including unsupported element attributes that cannot be migrated.
+The following sections describe the capabilities of the existing [diagram converter](https://github.com/camunda-community-hub/camunda-7-to-8-migration/tree/main/backend-diagram-converter) for relevant BPMN symbols, including unsupported element attributes that cannot be migrated.
 
 ### General considerations
 
@@ -37,7 +42,7 @@ The following attribute can be migrated:
 ### Service tasks
 
 :::note
-Migrating a service task is described in [adjusting your source code](/guides/migrating-from-camunda-7/adjusting-source-code.md). You will have both BPMN and source code changes.
+Migrating a service task might also require to [adjust your source code](/guides/migrating-from-camunda-7/code-conversion.md). You will have both BPMN and source code changes.
 :::
 
 ![Service Task](../../components/modeler/bpmn/assets/bpmn-symbols/service-task.svg)
@@ -230,3 +235,33 @@ These elements will be converted:
 - `bpmn:multiInstanceLoopCharacteristics camunda:elementVariable` to `zeebe:loopCharacteristics inputElement`
 
 Additionally, there is now a built-in way to collect results using `zeebe:loopCharacteristics outputCollection` and `zeebe:loopCharacteristics outputElement`. You should consider this before using a workaround (for example, collecting local variables to a collection in parent scope in an exclusive job).
+
+## DMN Models
+
+The DMN engine in Camunda 8 is more modern than in Camunda 7, which leads to some small differences. To evaluate Camunda 7 DMN files in Camunda 8, change the following in the XML:
+
+`modeler:executionPlatform` should be set to `Camunda Cloud`. Prior to this change, you will see `Camunda Platform`, indicating designed compatibility with Camunda 7.
+
+`modeler:executionPlatformVersion` should be set to `8.2.0`. Prior to this change, you will see `7.19.0` or similar.
+
+:::info
+Web Modeler will automatically update `modeler:executionPlatform` and `modeler:executionPlatformVersion` to the correct values when you upload a DMN file.
+:::
+
+### General considerations
+
+The following elements/attributes are **not** supported in Camunda 8:
+
+- `History Time to Live`
+- You cannot select the `Expression Language`, only FEEL is supported
+- The property `Input Variable` is removed. In FEEL, the input value can be accessed by using `?` if needed.
+
+Furthermore, legacy behavior can still be executed but the following should be kept in mind:
+
+- Remove data types `integer` + `long` + `double` in favor of `number` for inputs and outputs (in FEEL, there is only a number type represented as `BigDecimal`).
+
+### Decisions
+
+The following attribute can be migrated:
+
+- `camunda:versionTag` to `extensionElements > zeebe:versionTag value`
